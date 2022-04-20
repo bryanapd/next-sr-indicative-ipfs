@@ -1,235 +1,150 @@
-import { useState, useEffect } from "react"
-import { useStateValidator, useValidate } from "react-indicative-hooks"
-import { useValidateAll } from "react-indicative-hooks"
-import { create } from "ipfs-http-client"
-import { Box, Button, Container, Text, Heading, HStack, Input, Spacer, Image, Spinner, Link, FormControl, FormLabel } from '@chakra-ui/react'
+import { create } from 'ipfs-http-client'
+import { useState, useEffect } from 'react'
+import { 
+  Box, Container, Heading, FormControl, FormLabel, 
+  Input, Button, Textarea, Link, Text, VStack, Image, 
+  Spinner, Stack, Grid
+} from '@chakra-ui/react';
 
-const client = create("https://ipfs.infura.io:5001/api/v0")
 
-const faves = {
-  anime: '',
-  manga: ''
+
+const itemState = {
+  item: '',
+  description: '',
+  album: '',
+  tracks: '',
+  price: ''
 }
 
-export default function Home() {
-  const [show, setShow] = useState(false)
-  const [hasChosenImage, setHasChosenImage] = useState(false)
-  const [hasChosenVideo, setHasChosenVideo] = useState(false)
-  const [hasChosenAudio, setHasChosenAudio] = useState(false)
-  const [hasChosenJson, setHasChosenJson] = useState(false)
-  const [fileUrlImage, updateFileUrlImage] = useState('')
-  const [fileUrlVideo, updateFileUrlVideo] = useState('')
-  const [fileUrlAudio, updateFileUrlAudio] = useState('')
-  const [fileUrlJson, updateFileUrlJson] = useState('')
-  const [fileUrl, setFileUrl] = useState('')
-  const [fileData, setFileData] = useState([])
+const client = create('https://ipfs.infura.io:5001/api/v0')
 
-  const data = []
+export default function Home() {  
+  const [item, setItem] = useState(itemState)
+  const [cid, setCid] = useState("")
+  const [fileUrl, setFileUrl] = useState("")
+  const [jsonData, setJsonData] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const [item, setItem] = useState(faves)
-
-
-  async function onChangeImage(e) {
-    setHasChosenImage(true)
-    const file = e.target.files[0]
-    try {
-      const added = await client.add(file)
-      const url = `https://cloudflare-ipfs.com/ipfs/${added.path}`
-      console.log(added)
-      console.log("cid: " + added.cid)
-      console.log("url: " + url)
-      updateFileUrlImage(url)
-      data.push({
-        "image": added.path
-      })
-      const dataJson = JSON.stringify(data)
-      console.log(data)
-      const blob = new Blob([dataJson], { type: 'application/json' })
-      const jsonFile = new File([ blob ], 'file.json')
-      const otherAdded = await client.add(jsonFile)
-      const otherUrl = `https://cloudflare-ipfs.com/ipfs/${otherAdded.path}`
-      console.log(otherAdded)
-      console.log("cid: " + otherAdded.cid)
-      console.log("url: " + otherUrl)
-      updateFileUrlJson(otherUrl)
-    } catch (error) {
-      console.log('Error uploading file: ', error)
-    }  
+  async function onChange ({ target: { name, value, files } }) {
+    switch (name) {
+      case 'tracks':
+        setItem({ ...item, [name]: parseInt(value) })
+        break;
+      case 'price':
+        setItem({ ...item, [name]: parseFloat(value) })
+        break;  
+      case 'album':
+        setItem({ ...item, [name]: parseInt(value) })
+        break;
+      case 'file':
+        const file = files[0]
+        console.log(file)
+        try {
+          const added = await client.add(file)
+          const url = `https://cloudflare-ipfs.com/ipfs/${added.path}`
+          console.log(added)
+          console.log("cid: " + added.cid)
+          console.log("url: " + url)
+          setItem({ ...item, [name]: url })
+        } catch (error) {
+          console.log('Error uploading file: ', error)
+        }  
+        break;  
+      default:
+        setItem({ ...item, [name]: value })
+        break;
+    }
   }
 
-  async function onChangeVideo(e) {
-    setHasChosenVideo(true)
-    const file = e.target.files[0]
-    try {
-      const added = await client.add(file)
-      const url = `https://cloudflare-ipfs.com/ipfs/${added.path}`
-      console.log(added)
-      console.log("cid: " + added.cid)
-      console.log("url: " + url)
-      updateFileUrlVideo(url)
-    } catch (error) {
-      console.log('Error uploading file: ', error)
-    }  
-  }
-
-  async function onChangeAudio(e) {
-    setHasChosenAudio(true)
-    const file = e.target.files[0]
-    try {
-      const added = await client.add(file)
-      const url = `https://cloudflare-ipfs.com/ipfs/${added.path}`
-      console.log(added)
-      console.log("cid: " + added.cid)
-      console.log("url: " + url)
-      updateFileUrlAudio(url)
-    } catch (error) {
-      console.log('Error uploading file: ', error)
-    }  
-  }
-
-  async function uploadItem() {
+  async function upload() {
+    setIsLoading(true)
     const jsonData = JSON.stringify(item)
-    console.log(jsonData)
     try {
       const added = await client.add(jsonData)
       const url = `https://cloudflare-ipfs.com/ipfs/${added.path}`
       console.log(added)
       console.log("cid: " + added.cid)
       console.log("url: " + url)
-      updateFileUrlJson(url)
+      setCid(added.path)
+      setFileUrl(url)
     } catch (error) {
       console.log('Error uploading file: ', error)
     }  
   }
 
-  async function getJsonData(files) {
-    try{
-      const items = await fetch(files)
-      const json = await items.json()
-      setFileData(json)
-    }
-    catch(e) {
-      console.log('Error cannot get files')
-    }
+  async function getJsonData(fileUrl) {
+    try {
+      const data = await fetch(fileUrl)
+      const json = await data.json()
+      setJsonData(json)
+      setIsLoading(false)
+    } catch (error) {
+      console.log('Error getting json data: ', error)
+    }  
   }
 
-  function onChange ({ target: { name, value } }) {
-    setItem({ ...item, [name]: value })
-  }
-
+  useEffect(() => {
+    getJsonData(fileUrl)
+    console.log(jsonData)
+  }, [fileUrl])
 
   return (
-    <Box h="100vh" bgGradient="linear(to-r, #283c86, #45a247)">
-      <Container maxW="container.sm" pt={50} color="white">
-        <Heading size="xl" mb={4}>IPFS</Heading>
-        <Heading size="md" mb={2}>Image</Heading>
-        <Input
-          type="file"
-          variant="unstyled"
-          onChange={onChangeImage}
-          mb={4} />
+    <Box pt={16} h="100vh" bgGradient="linear(to-r, #0F2027, #203A43, #2C5364)" color="white">
+      <Container maxW="container.xl">
+        <Heading size="lg" mb={10}>MY FAVORITE GIRL</Heading>
+        <Grid templateColumns={{ base: 'auto', md: 'repeat(2, 1fr)'}} spacing={5}>
+          <Stack spacing={5}>
+            <FormControl>
+              <FormLabel>Image</FormLabel>
+              <Input variant="unstyled" name="file" type="file" onChange={onChange} />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Item Name</FormLabel>
+              <Input variant="filled" name="item" onChange={onChange} />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Description</FormLabel>
+              <Textarea variant="filled" name="description" onChange={onChange} />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Album</FormLabel>
+              <Input variant="filled" type="number" name="album" onChange={onChange} />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Tracks</FormLabel>
+              <Input variant="filled" type="number" name="tracks" onChange={onChange} />
+            </FormControl>
+            <FormControl>
+              <FormLabel>Price</FormLabel>
+              <Input variant="filled" type="number" name="price" onChange={onChange} />
+            </FormControl>
+            <Button bg="teal.500" onClick={upload}>UPLOAD</Button>
+          </Stack>
         {
-          (!fileUrlImage && hasChosenImage === true) ? (
-            <Spinner />
-           ) : null
-        }    
-        {
-          fileUrlImage && (
-            <Box>
-              <Image src={fileUrlImage} w="full" h="800px" />
-              <Link as="a" href={fileUrlJson} target="_blank">
-                Go to the link of json metadata
-              </Link>
-            </Box>
-          )
+          isLoading && <Spinner />
         }
-        <Heading size="md" mb={2}>Video</Heading>
-        <Input
-          type="file"
-          variant="unstyled"
-          onChange={onChangeVideo}
-          mb={4} />
         {
-          (!fileUrlVideo && hasChosenVideo === true) ? (
-            <Spinner />
-           ) : null
-        }    
-        {
-          fileUrlVideo && (
-            <video width="320" height="240" controls>
-              <source src={fileUrlVideo} type="video/mp4" />
-              <source src={fileUrlVideo} type="video/mov" />
-              Your browser does not support the video tag.
-            </video>
-          )  
-        }
-        <Heading size="md" mb={2}>Audio</Heading>
-        <Input
-          type="file"
-          variant="unstyled"
-          onChange={onChangeAudio}
-          mb={4} />
-        {
-          (!fileUrlAudio && hasChosenAudio === true) ? (
-            <Spinner />
-           ) : null
+          jsonData ? (
+            <VStack align="start" spacing={2} mb={8}>
+              <Heading size="md" my={4}>Fetched Data</Heading>
+              <Image src={jsonData.file} boxSize="200px" objectFit="cover" />
+              <Text>Item Name: {jsonData.item}</Text>
+              <Text>Description: {jsonData.description}</Text>
+              <Text>Album: {jsonData.album}</Text>
+              <Text>Tracks: {jsonData.tracks}</Text>
+              <Text>Price: {jsonData.price}</Text>
+              {
+                fileUrl && (
+                  <Link mb={2} as="a" href={fileUrl} target="_blank">
+                    <Button bg="teal.500">Get the link</Button>
+                  </Link>
+                )
+              }
+            </VStack>
+          ) : null
         }  
-        {
-          fileUrlAudio && (
-            <audio width="320" height="240" controls>
-              <source src={fileUrlAudio} type="audio/mp3" />
-              Your browser does not support the video tag.
-            </audio>
-          )
-        }
-        <Heading size="md" mb={2}>JSON</Heading>
-        <FormControl mb={4}>
-          <FormLabel>Favorite Anime</FormLabel>
-          <Input name="anime" variant="filled" onChange={onChange} />
-        </FormControl>
-        <FormControl mb={4}>
-          <FormLabel>Favorite Manga</FormLabel>
-          <Input name="manga" variant="filled" onChange={onChange} />
-        </FormControl>
-        {
-          (!fileUrlJson && hasChosenJson == false) ? 
-          <Button onClick={uploadItem} bg="teal.300">UPLOAD!</Button>
-          : ''
-        }
-        {/* <Input
-          type="file"
-          onChange={onChangeJson}
-          mb={4} /> */}
-        {
-          (!fileUrlJson && hasChosenJson === true) ? (
-            <Spinner />
-           ) : null
-        }  
-        {
-          fileUrlJson && (
-            <Link as="a" href={fileUrlJson} target="_blank">
-              <Button bg="teal.300">Get JSON Link</Button>
-            </Link>
-          )
-        }
-        {/* <Heading size="xl" mt={4} mb={2}>Static Regeneration</Heading>
-        <Text mb={2}>{time}</Text>
-        <Button onClick={() => revalidate()} mb={16}>Revalidate</Button> */}
-        {/* {
-          res.map((result, rKey) => (
-            <Text key={rKey}>{result}</Text>
-          ))
-        } */}
-        <Button bg="teal.500" onClick={() => setShow(true)}>Fetch Data</Button>
-        {
-          show == true ?
-          <Box mt={50}>
-            <Text>bryan</Text>
-            <Button onClick={() => setShow(false)}>Close</Button>
-          </Box>
-          : null
-        }
-      </Container>
+        </Grid>
+      </Container>  
     </Box>
   )
 }
