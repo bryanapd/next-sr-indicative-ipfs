@@ -7,35 +7,32 @@ import {
 } from '@chakra-ui/react';
 
 
-
-const itemState = {
-  item: '',
-  description: '',
-  album: '',
-  tracks: '',
-  price: ''
-}
-
 const client = create('https://ipfs.infura.io:5001/api/v0')
 
 export default function Home() {  
-  const [item, setItem] = useState(itemState)
   const [cid, setCid] = useState("")
   const [fileUrl, setFileUrl] = useState("")
   const [jsonData, setJsonData] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  
+  const [item, setItem] = useState({
+    item: '',
+    album: '',
+    tracks: '',
+    price: ''
+  })
 
   async function onChange ({ target: { name, value, files } }) {
     switch (name) {
+      case 'album':
+        setItem({ ...item, [name]: value })
+        break;
       case 'tracks':
         setItem({ ...item, [name]: parseInt(value) })
         break;
       case 'price':
         setItem({ ...item, [name]: parseFloat(value) })
         break;  
-      case 'album':
-        setItem({ ...item, [name]: parseInt(value) })
-        break;
       case 'file':
         const file = files[0]
         console.log(file)
@@ -92,31 +89,27 @@ export default function Home() {
     <Box pt={16} h="100vh" bgGradient="linear(to-r, #0F2027, #203A43, #2C5364)" color="white">
       <Container maxW="container.xl">
         <Heading size="lg" mb={10}>MY FAVORITE GIRL</Heading>
-        <Grid templateColumns={{ base: 'auto', md: 'repeat(2, 1fr)'}} spacing={5}>
+        <Grid templateColumns={{ base: 'auto', md: 'repeat(2, 1fr)'}} gap={10}>
           <Stack spacing={5}>
             <FormControl>
               <FormLabel>Image</FormLabel>
               <Input variant="unstyled" name="file" type="file" onChange={onChange} />
             </FormControl>
             <FormControl>
-              <FormLabel>Item Name</FormLabel>
-              <Input variant="filled" name="item" onChange={onChange} />
-            </FormControl>
-            <FormControl>
-              <FormLabel>Description</FormLabel>
-              <Textarea variant="filled" name="description" onChange={onChange} />
+              <FormLabel>Artist</FormLabel>
+              <Input color="black" variant="filled" name="item" onChange={onChange} />
             </FormControl>
             <FormControl>
               <FormLabel>Album</FormLabel>
-              <Input variant="filled" type="number" name="album" onChange={onChange} />
+              <Input color="black" variant="filled" type="text" name="album" onChange={onChange} />
             </FormControl>
             <FormControl>
               <FormLabel>Tracks</FormLabel>
-              <Input variant="filled" type="number" name="tracks" onChange={onChange} />
+              <Input color="black" variant="filled" type="number" name="tracks" onChange={onChange} />
             </FormControl>
             <FormControl>
               <FormLabel>Price</FormLabel>
-              <Input variant="filled" type="number" name="price" onChange={onChange} />
+              <Input color="black" variant="filled" type="number" name="price" onChange={onChange} />
             </FormControl>
             <Button bg="teal.500" onClick={upload}>UPLOAD</Button>
           </Stack>
@@ -125,22 +118,22 @@ export default function Home() {
         }
         {
           jsonData ? (
-            <VStack align="start" spacing={2} mb={8}>
-              <Heading size="md" my={4}>Fetched Data</Heading>
-              <Image src={jsonData.file} boxSize="200px" objectFit="cover" />
-              <Text>Item Name: {jsonData.item}</Text>
-              <Text>Description: {jsonData.description}</Text>
-              <Text>Album: {jsonData.album}</Text>
-              <Text>Tracks: {jsonData.tracks}</Text>
-              <Text>Price: {jsonData.price}</Text>
-              {
-                fileUrl && (
-                  <Link mb={2} as="a" href={fileUrl} target="_blank">
-                    <Button bg="teal.500">Get the link</Button>
-                  </Link>
-                )
-              }
-            </VStack>
+            <Stack direction="row" align="start" spacing={2} mb={8}>
+              <Image src={jsonData.file} boxSize="300px" objectFit="cover" />
+              <Box>
+                <Text>Artist: {jsonData.item}</Text>
+                <Text>Album: {jsonData.album}</Text>
+                <Text>Tracks: {jsonData.tracks}</Text>
+                <Text>Price: {jsonData.price}</Text>
+                {
+                  fileUrl && (
+                    <Link as="a" href={fileUrl} target="_blank">
+                      <Button bg="teal.500" mt={4}>Get the link</Button>
+                    </Link>
+                  )
+                }
+              </Box>
+            </Stack>
           ) : null
         }  
         </Grid>
